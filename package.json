@@ -1,0 +1,23 @@
+{
+  "name": "@sharif-digital-hub/wifi-billing-system",
+  "version": "1.0.0",
+  "description": "Sharif Digital Hub - Complete WiFi Hotspot Billing System",
+  "author": "Sharif Digital Hub <contact@sharifdigitalhub.com>",
+  "license": "PROPRIETARY",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "start": "pnpm -r start",
+    "setup": "pnpm install && cd api && pnpm prisma generate"
+  },
+  "keywords": [
+    "wifi",
+    "hotspot",
+    "billing",
+    "mobile-money",
+    "mikrotik",
+    "sharif-digital-hub"
+  ],
+  "packageManager": "pnpm@10.19.0"
+}

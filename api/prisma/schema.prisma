@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  phone       String?  @unique
+  passwordHash String
+  role        UserRole @default(CUSTOMER)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profile      UserProfile?
+  vouchers     Voucher[]
+  sessions     HotspotSession[]
+  payments     Payment[]
+  auditLogs    AuditLog[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id       String  @id @default(cuid())
+  userId   String  @unique
+  fullName String?
+  avatar   String?
+  balance  Decimal @default(0)
+  tier     UserTier @default(BASIC)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model HotspotZone {
+  id          String  @id @default(cuid())
+  name        String
+  location    String?
+  mikrotikIp  String
+  apiUser     String
+  apiPassword String
+  isActive    Boolean @default(true)
+  maxUsers    Int     @default(100)
+  createdAt   DateTime @default(now())
+
+  vouchers Voucher[]
+  sessions HotspotSession[]
+
+  @@map("hotspot_zones")
+}
+
+model VoucherPlan {
+  id          String  @id @default(cuid())
+  name        String
+  duration    Int     // minutes
+  price       Decimal
+  dataLimit   BigInt? // bytes
+  speedLimit  Int?    // kbps
+  isActive    Boolean @default(true)
+  tier        UserTier @default(BASIC)
+  createdAt   DateTime @default(now())
+
+  vouchers Voucher[]
+
+  @@map("voucher_plans")
+}
+
+model Voucher {
+  id          String        @id @default(cuid())
+  code        String        @unique
+  planId      String
+  zoneId      String
+  userId      String?
+  status      VoucherStatus @default(ACTIVE)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime      @default(now())
+
+  plan     VoucherPlan @relation(fields: [planId], references: [id])
+  zone     HotspotZone @relation(fields: [zoneId], references: [id])
+  user     User?       @relation(fields: [userId], references: [id])
+  sessions HotspotSession[]
+
+  @@map("vouchers")
+}
+
+model HotspotSession {
+  id          String    @id @default(cuid())
+  userId      String
+  voucherId   String
+  zoneId      String
+  macAddress  String
+  ipAddress   String?
+  startTime   DateTime  @default(now())
+  endTime     DateTime?
+  bytesUp     BigInt    @default(0)
+  bytesDown   BigInt    @default(0)
+  status      SessionStatus @default(ACTIVE)
+
+  user    User        @relation(fields: [userId], references: [id])
+  voucher Voucher     @relation(fields: [voucherId], references: [id])
+  zone    HotspotZone @relation(fields: [zoneId], references: [id])
+
+  @@map("hotspot_sessions")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  userId        String
+  amount        Decimal
+  currency      String        @default("UGX")
+  method        PaymentMethod
+  provider      String        // MTN, Airtel
+  externalId    String?       // Provider transaction ID
+  status        PaymentStatus @default(PENDING)
+  description   String?
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+  completedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("payments")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  severity  LogSeverity @default(INFO)
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  type  ConfigType @default(STRING)
+
+  @@map("system_config")
+}
+
+model HotspotConfig {
+  id                   String   @id @default(cuid())
+  businessName         String
+  logoUrl              String?
+  merchantCode         String
+  packages             String   @db.Text // JSON string
+  paymentInstructions  String   @db.Text // JSON string
+  theme                String   @db.Text // JSON string
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("hotspot_config")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  OPERATOR
+  CUSTOMER
+}
+
+enum UserTier {
+  BASIC
+  PREMIUM
+  VIP
+}
+
+enum VoucherStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  CANCELLED
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  TERMINATED
+}
+
+enum PaymentMethod {
+  MOBILE_MONEY
+  CASH
+  CARD
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum ConfigType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+enum LogSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
