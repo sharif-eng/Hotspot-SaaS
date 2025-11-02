@@ -9,6 +9,10 @@ export default function Vouchers() {
     { id: 'VCH004', code: 'JKL22222', plan: '30 Minutes - 500MB', price: 1000, status: 'ACTIVE', zone: 'Main Campus', createdAt: '2024-01-15', expiresAt: '2024-01-16' },
   ]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchVouchers();
+  }, []);
   const [createModal, setCreateModal] = useState(false);
   const [bulkModal, setBulkModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('');
@@ -17,25 +21,45 @@ export default function Vouchers() {
   const handleGenerateVoucher = async (planId: number) => {
     setLoading(true);
     try {
-      const plan = plans.find(p => p.id === planId);
-      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-      const newVoucher = {
-        id: `VCH${Date.now()}`,
-        code,
-        plan: plan?.name || 'Unknown Plan',
-        price: plan?.price || 0,
-        status: 'ACTIVE',
-        zone: 'Main Campus',
-        createdAt: new Date().toISOString().split('T')[0],
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      };
+      const response = await fetch('/api/vouchers/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          planId: planId.toString(),
+          quantity: 1,
+        }),
+      });
       
-      setVouchers(prev => [newVoucher, ...prev]);
-      alert(`Generated voucher: ${code}`);
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Generated voucher: ${result.code || 'Success'}`);
+        fetchVouchers();
+      } else {
+        alert('Failed to generate voucher');
+      }
     } catch (error) {
       alert('Error generating voucher');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchVouchers = async () => {
+    try {
+      const response = await fetch('/api/vouchers', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setVouchers(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch vouchers:', error);
     }
   };
 

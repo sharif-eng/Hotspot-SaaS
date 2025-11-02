@@ -3,7 +3,7 @@ import { Users as UsersIcon, Plus, Search, Edit, Trash2, Shield } from 'lucide-r
 
 export default function Users() {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newUser, setNewUser] = useState({ email: '', password: '', fullName: '', role: 'CUSTOMER' });
 
@@ -13,20 +13,27 @@ export default function Users() {
       return;
     }
     
-    const user = {
-      id: `user-${Date.now()}`,
-      name: newUser.fullName,
-      email: newUser.email,
-      role: newUser.role,
-      status: 'Active',
-      balance: 0,
-      joinDate: new Date().toLocaleDateString(),
-    };
-    
-    setUsers(prev => [user, ...prev]);
-    alert('User created successfully!');
-    setShowAddModal(false);
-    setNewUser({ email: '', password: '', fullName: '', role: 'CUSTOMER' });
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(newUser),
+      });
+      
+      if (response.ok) {
+        alert('User created successfully!');
+        setShowAddModal(false);
+        setNewUser({ email: '', password: '', fullName: '', role: 'CUSTOMER' });
+        fetchUsers();
+      } else {
+        alert('Failed to create user');
+      }
+    } catch (error) {
+      alert('Error creating user');
+    }
   };
 
   const fetchUsers = async () => {
@@ -52,9 +59,7 @@ export default function Users() {
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
-      setUsers([
-        { id: 'admin001', name: 'Sharif Digital Hub Admin', email: 'admin@sharifdigitalhub.com', role: 'SUPER_ADMIN', status: 'Active', balance: 0, joinDate: new Date().toLocaleDateString() },
-      ]);
+      setUsers([]);
     } finally {
       setLoading(false);
     }

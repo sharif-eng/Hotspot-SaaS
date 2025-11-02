@@ -12,6 +12,7 @@ import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { HotspotConfigController } from './hotspot-config/hotspot-config.controller';
 import { HotspotConfigService } from './hotspot-config/hotspot-config.service';
+import { UsersService } from './users/users.service';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { HotspotConfigService } from './hotspot-config/hotspot-config.service';
     ZonesController,
     HotspotConfigController,
   ],
-  providers: [AuthService, HotspotConfigService],
+  providers: [AuthService, HotspotConfigService, UsersService],
 })
 export class AppModule {
   constructor(private mikrotikService: MikrotikService) {
